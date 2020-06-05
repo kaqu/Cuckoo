@@ -13,6 +13,10 @@ final class CuckooTests: XCTestCase {
       Task { Command("pwd", workingDirectory: "/usr/bin") } // override working directory for single command
       Task { // you can also create tasks that are constructed from more than one command
         Command("echo", arguments: ["Hello swift!"])
+        Command("cat", standardInputBinding: { write in // you can set custom std in for commands and even bind those between commands
+          write("Hello streams".data(using:. utf8)!)
+          write(Data()) // you have to end it with empty data
+        })
         Command("pwd")
       }
     }.execute() // and execute it waiting for result

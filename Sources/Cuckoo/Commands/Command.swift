@@ -88,7 +88,7 @@ public final class Command {
         fileHandle.write(data)
       }
     }
-    stdOutPipe = pipe
+    stdInPipe = pipe
     return true
   }
   
