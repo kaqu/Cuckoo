@@ -28,8 +28,6 @@ public struct Task {
   }
   
   public init(@TaskBuilder _ commandsBuilder: @escaping () -> Array<Command>) {
-    // TODO: local workingDirectory for commands?
-    // - command can change working directory of its own, do we need to propagate it somehow?
     self.task = { workingDirectory in
       let commands = commandsBuilder()
       for command in commands {
@@ -51,6 +49,7 @@ public struct Task {
 public enum TaskError: Error {
   case invalidDirectory
   case commandError(CommandError)
+  case custom(Error)
 }
 
 @_functionBuilder

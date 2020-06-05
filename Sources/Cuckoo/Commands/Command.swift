@@ -47,7 +47,8 @@ public final class Command {
     } else { /**/ }
   }
   
-  @discardableResult internal func overrideInheritedWorkingDirectory(_ workingDirectory: String) -> Bool {
+  @discardableResult
+  internal func overrideInheritedWorkingDirectory(_ workingDirectory: String) -> Bool {
     guard hasInheritedWorkingDirectory else { return false }
     hasInheritedWorkingDirectory = false
     process.currentDirectoryURL = URL(directoryPath: workingDirectory)
@@ -130,7 +131,7 @@ public final class Command {
   
   @discardableResult
   public func runSync() -> Result<Void, CommandError> {
-    guard lock.tryLock(whenCondition: -1) else { return .failure(.todoErrors) }
+    guard lock.tryLock(whenCondition: -1) else { return .failure(.alreadyRunningOrCompleted) }
     lock.unlock(withCondition: 1)
     return Result {
       try process.execute(
@@ -139,22 +140,21 @@ public final class Command {
         stdErrPipe: stdErrPipe,
         completion: { [weak self] _ in
           guard let self = self else { return }
-          guard self.lock.tryLock(whenCondition: 1) else { return }
+          guard self.lock.tryLock(whenCondition: 1) else { fatalError("Unexpected state") }
           self.lock.unlock(withCondition: 0)
         }
       )
-      if process.waitForExit() == 0 {
-        // ok
-      } else {
-        throw CommandError.todoErrors
+      let exitCode = process.waitForExit()
+      guard exitCode == 0 else {
+        throw CommandError.exitCode(exitCode)
       }
     }.mapError { _ in
-      return .todoErrors
+      return .executionError
     }
   }
   
   public func runAsync(_ completion: ((Result<Void, CommandError>) -> Void)? = nil) {
-    guard lock.tryLock(whenCondition: -1) else { return completion?(.failure(.todoErrors)) ?? () }
+    guard lock.tryLock(whenCondition: -1) else { return completion?(.failure(.alreadyRunningOrCompleted)) ?? () }
     lock.unlock(withCondition: 1)
     do {
       try process.execute(
@@ -163,21 +163,24 @@ public final class Command {
         stdErrPipe: stdErrPipe,
         completion: { [weak self] exitCode in
           guard let self = self else { return }
-          guard self.lock.tryLock(whenCondition: 1) else { return completion?(.failure(.todoErrors)) ?? () }
+          guard self.lock.tryLock(whenCondition: 1) else { fatalError("Unexpected state") }
           self.lock.unlock(withCondition: 0)
           if exitCode == 0 {
             completion?(.success(()))
           } else {
-            completion?(.failure(.todoErrors))
+            completion?(.failure(.exitCode(exitCode)))
           }
         }
       )
     } catch {
-      completion?(.failure(.todoErrors))
+      completion?(.failure(.executionError))
     }
   }
 }
 
 public enum CommandError: Error {
-  case todoErrors
+  case alreadyRunningOrCompleted
+  case exitCode(Int32)
+  case custom(Error)
+  case executionError // TODO
 }
