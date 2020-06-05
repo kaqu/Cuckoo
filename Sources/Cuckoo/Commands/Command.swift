@@ -4,7 +4,7 @@ import class Foundation.FileHandle
 import struct Foundation.NSData.Data
 import struct Foundation.NSURL.URL
 import class Foundation.NSLock.NSConditionLock
-//import class Foundation.NSFileManager.FileManager
+import class Foundation.NSFileManager.FileManager
 
 public final class Command {
   
@@ -13,6 +13,7 @@ public final class Command {
   
   private let process: Process
   private let lock: NSConditionLock = NSConditionLock(condition: -1)
+  private var hasInheritedWorkingDirectory: Bool
   private var stdInPipe: Pipe? = nil
   private var stdOutPipe: Pipe? = nil
   private var stdErrPipe: Pipe? = nil
@@ -26,6 +27,7 @@ public final class Command {
     standardOutputBinding: ((Data) -> Void)? = nil,
     standardErrorBinding: ((Data) -> Void)? = nil
   ) {
+    self.hasInheritedWorkingDirectory = workingDirectory == nil
     self.process = Process.prepare(
       command,
       arguments: arguments,
@@ -45,9 +47,11 @@ public final class Command {
     } else { /**/ }
   }
   
-  internal func setWorkingDirectoryIfEmpty(_ workingDirectory: String) {
-    guard process.currentDirectoryURL == nil else { return }
-    process.currentDirectoryURL = URL(directory: workingDirectory)
+  @discardableResult internal func overrideInheritedWorkingDirectory(_ workingDirectory: String) -> Bool {
+    guard hasInheritedWorkingDirectory else { return false }
+    hasInheritedWorkingDirectory = false
+    process.currentDirectoryURL = URL(directoryPath: workingDirectory)
+    return true
   }
   
   @discardableResult

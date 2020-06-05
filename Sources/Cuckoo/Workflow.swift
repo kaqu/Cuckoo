@@ -11,6 +11,11 @@ public struct Workflow {
     workingDirectory: String = FileManager.default.currentDirectoryPath,
     @WorkflowBuilder tasks: () -> Array<Task>
   ) {
+    assert(
+      !workingDirectory.isEmpty
+      && FileManager.default.directoryExists(atPath: workingDirectory),
+      "Invalid working directory: \(workingDirectory)"
+    )
     self.workingDirectory = workingDirectory
     self.tasks = tasks()
   }
@@ -41,7 +46,7 @@ public enum WorkflowError: Error {
 }
 
 @_functionBuilder
-internal enum WorkflowBuilder {
+public enum WorkflowBuilder {
   
   public static func buildBlock(
     _ task: Task

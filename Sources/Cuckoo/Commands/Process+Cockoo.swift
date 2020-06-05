@@ -15,11 +15,11 @@ internal extension Process {
   ) -> Process {
     let process = Process()
     
-    process.executableURL = URL(string: "file:///usr/bin/env")
+    process.executableURL = URL(filePath: "/usr/bin/env")
     process.arguments = [command] + arguments
     
     if let workingDirectory = workingDirectory {
-      process.currentDirectoryURL = URL(directory: workingDirectory)
+      process.currentDirectoryURL = URL(directoryPath: workingDirectory)
     } else { /* use inherited from current process */ }
     
     if let commandSearchPath = commandSearchPath {

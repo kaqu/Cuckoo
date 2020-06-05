@@ -1,3 +1,5 @@
+import class Foundation.NSFileManager.FileManager
+
 public extension Task {
   
   static func printWorkingDirectory(to output: @escaping (String) -> Void = consoleStandardOutput) -> Task {
@@ -9,7 +11,10 @@ public extension Task {
 
   static func setWorkingDirectory(to workingDirectory: String) -> Task {
     Task { currentWorkingDirectory in
-      guard !workingDirectory.isEmpty else { return .failure(.invalidDirectory)} // TODO: check if is valid dir
+      guard
+        !workingDirectory.isEmpty,
+        FileManager.default.directoryExists(atPath: workingDirectory)
+      else { return .failure(.invalidDirectory) }
       currentWorkingDirectory = workingDirectory
       return .success(())
     }
