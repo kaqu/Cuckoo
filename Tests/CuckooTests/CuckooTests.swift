@@ -25,12 +25,14 @@ final class CuckooTests: XCTestCase {
         let missing: Double? = variables.missing // it won't crash if you ask for optional value
         assert(missing == nil) // just returns nil if there is no value or type does not match requested
         // let crashing: Double = variables.crashing // it would crash if executed
+        _ = Command("echo", arguments: ["Super cool!"], standardOutputBinding: variables.stdOut).runSync() // you can even catch Command streams to variables, remmember to run and wait for completion before Task ends
         return .success
       }
       Task { variables in // all variables are passed between tasks in same workflow
         consoleStandardOutput(variables.answer) // each variable can be automatically converted to String
         let missingButString: String = variables.undefined // convertion to String don't crash
         assert(missingButString == "") // you get description of value (from CustomStringConvertible if able) or empty string
+        consoleStandardOutput(String(data: variables.stdOut, encoding: .utf8) ?? "N/A") // you can also get previously catched outputs but remmember that it will always be stored as Data
         variables.workingDirectory = "~/Documents" // there is a special variable `workingDirectory` which controls current working directory for executed Tasks and is used by wrapped Commands
         return .success
       }
