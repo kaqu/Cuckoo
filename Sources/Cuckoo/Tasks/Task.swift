@@ -1,26 +1,28 @@
 public struct Task {
   
-  private var task: (_ workingDirectory: inout String) -> Result<Void, TaskError>
+  public typealias Closure = (inout Variables) -> Result<Void, TaskError>
   
-  public init(task: @escaping (_ workingDirectory: inout String) -> Result<Void, TaskError>) {
+  private var task: Closure
+  
+  public init(task: @escaping Closure) {
     self.task = task
   }
   
-  public init(@TaskBuilder _ tasksBuilder: @escaping () -> Array<(_ workingDirectory: inout String) -> Result<Void, TaskError>>) {
-    self.task = { workingDirectory in
+  public init(@TaskBuilder _ tasksBuilder: @escaping () -> Array<Closure>) {
+    self.task = { variables in
       let tasks = tasksBuilder()
       for task in tasks {
-        guard case let .failure(error) = task(&workingDirectory) else { continue }
+        guard case let .failure(error) = task(&variables) else { continue }
         return .failure(error)
       }
-      return .success(())
+      return .success
     }
   }
   
   public init(@TaskBuilder _ commandBuilder: @escaping () -> Command) {
-    self.task = { workingDirectory in
+    self.task = { variables in
       let command = commandBuilder()
-      command.overrideInheritedWorkingDirectory(workingDirectory)
+      command.updateWorkingDirectoryIfNeeded(variables.workingDirectory)
       command.bindStandardOutput(to: consoleStandardOutputData)
       command.bindStandardError(to: consoleStandardErrorData)
       return command.runSync().mapError { .commandError($0) }
@@ -28,21 +30,21 @@ public struct Task {
   }
   
   public init(@TaskBuilder _ commandsBuilder: @escaping () -> Array<Command>) {
-    self.task = { workingDirectory in
+    self.task = { variables in
       let commands = commandsBuilder()
       for command in commands {
-        command.overrideInheritedWorkingDirectory(workingDirectory)
+        command.updateWorkingDirectoryIfNeeded(variables.workingDirectory)
         command.bindStandardOutput(to: consoleStandardOutputData)
         command.bindStandardError(to: consoleStandardErrorData)
         guard case let .failure(error) = command.runSync() else { continue }
         return .failure(.commandError(error))
       }
-      return .success(())
+      return .success
     }
   }
 
-  internal func execute(in workingDirectory: inout String) -> Result<Void, TaskError> {
-    task(&workingDirectory)
+  internal func execute(with variables: inout Variables) -> Result<Void, TaskError> {
+    task(&variables)
   }
 }
 

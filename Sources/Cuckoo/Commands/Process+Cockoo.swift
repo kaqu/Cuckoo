@@ -10,6 +10,7 @@ internal extension Process {
   static func prepare(
     _ command: String,
     arguments: Array<String> = [],
+    environment: Dictionary<String, String>? = nil,
     workingDirectory: String? = nil,
     commandSearchPath: String? = nil
   ) -> Process {
@@ -22,15 +23,15 @@ internal extension Process {
       process.currentDirectoryURL = URL(directoryPath: workingDirectory)
     } else { /* use inherited from current process */ }
     
+    var environment = environment ?? ProcessInfo.processInfo.environment
     if let commandSearchPath = commandSearchPath {
-      var environment = ProcessInfo.processInfo.environment
       if let path = environment["PATH"] {
         environment["PATH"] = "\(path): \(commandSearchPath)"
       } else {
         environment["PATH"] = commandSearchPath
       }
-      process.environment = environment
-    } else { /* use inherited from current process */ }
+    } else { /**/ }
+    process.environment = environment
     return process
   }
   

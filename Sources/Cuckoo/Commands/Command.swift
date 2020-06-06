@@ -48,8 +48,8 @@ public final class Command {
   }
   
   @discardableResult
-  internal func overrideInheritedWorkingDirectory(_ workingDirectory: String) -> Bool {
-    guard hasInheritedWorkingDirectory else { return false }
+  internal func updateWorkingDirectoryIfNeeded(_ workingDirectory: String) -> Bool {
+    guard hasInheritedWorkingDirectory, !workingDirectory.isEmpty else { return false }
     hasInheritedWorkingDirectory = false
     process.currentDirectoryURL = URL(directoryPath: workingDirectory)
     return true
@@ -166,7 +166,7 @@ public final class Command {
           guard self.lock.tryLock(whenCondition: 1) else { fatalError("Unexpected state") }
           self.lock.unlock(withCondition: 0)
           if exitCode == 0 {
-            completion?(.success(()))
+            completion?(.success)
           } else {
             completion?(.failure(.exitCode(exitCode)))
           }

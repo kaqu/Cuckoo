@@ -3,41 +3,40 @@ import class Foundation.NSFileManager.FileManager
 
 public struct Workflow {
   
-  public var workingDirectory: String
-  
+  public var variables: Variables
   public var tasks: Array<Task>
   
   public init(
-    workingDirectory: String = FileManager.default.currentDirectoryPath,
-    @WorkflowBuilder tasks: () -> Array<Task>
+    variables: Variables = [:],
+    @WorkflowBuilder task: () -> Task
   ) {
-    assert(
-      !workingDirectory.isEmpty
-      && FileManager.default.directoryExists(atPath: workingDirectory),
-      "Invalid working directory: \(workingDirectory)"
-    )
-    self.workingDirectory = workingDirectory
-    self.tasks = tasks()
+    self.variables = variables
+    self.tasks = [task()]
+    guard (self.variables.workingDirectory as String).isEmpty else { return }
+    self.variables.workingDirectory = FileManager.default.currentDirectoryPath
   }
   
   public init(
-    workingDirectory: String = FileManager.default.currentDirectoryPath,
-    @WorkflowBuilder task: () -> Task
+    variables: Variables = [:],
+    @WorkflowBuilder tasks: () -> Array<Task>
   ) {
-    self.workingDirectory = workingDirectory
-    self.tasks = [task()]
+    self.variables = variables
+    self.tasks = tasks()
+    guard (self.variables.workingDirectory as String).isEmpty else { return }
+    self.variables.workingDirectory = FileManager.default.currentDirectoryPath
   }
   
-  @discardableResult public func execute() -> Result<Void, WorkflowError> {
-    var workingDirectory = self.workingDirectory
+  @discardableResult
+  public func execute() -> Result<Void, WorkflowError> {
+    var variables = self.variables
     for task in tasks {
-      if case let .failure(error) = task.execute(in: &workingDirectory) {
+      if case let .failure(error) = task.execute(with: &variables) {
         return .failure(.taskError(error))
       } else {
         continue
       }
     }
-    return .success(())
+    return .success
   }
 }
 

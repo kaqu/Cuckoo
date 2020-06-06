@@ -3,20 +3,20 @@ import class Foundation.NSFileManager.FileManager
 public extension Task {
   
   static func printWorkingDirectory(to output: @escaping (String) -> Void = consoleStandardOutput) -> Task {
-    Task { currentWorkingDirectory in
-      output(currentWorkingDirectory)
-      return .success(())
+    Task { variables in
+      output(variables.workingDirectory ?? FileManager.default.currentDirectoryPath)
+      return .success
     }
   }
 
   static func setWorkingDirectory(to workingDirectory: String) -> Task {
-    Task { currentWorkingDirectory in
+    Task { variables in
       guard
         !workingDirectory.isEmpty,
         FileManager.default.directoryExists(atPath: workingDirectory)
       else { return .failure(.invalidDirectory) }
-      currentWorkingDirectory = workingDirectory
-      return .success(())
+      variables.workingDirectory = workingDirectory
+      return .success
     }
   }
 }
